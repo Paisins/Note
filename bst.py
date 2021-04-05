@@ -15,18 +15,6 @@ class BST:
             self.root = Node(value)
         else:
             self.root = None
-    def compare(node, value):
-        if not node:
-            return None
-        if node.value == value:
-            return self.root
-        elif node.value < value:
-            return f(node.left, value)
-        else:
-            return f(node.right, value)
-    # 遍历
-    def serach(self, value):
-        return self.compare(self.root, value)
     # 插入
     def insert(self, value):
         if not self.root:
@@ -63,10 +51,10 @@ class BST:
     # 删除
     def delete(self, node):
         # 找到被删除的叶子结点和值
-        if node.left:
+        if node.left is not None:
             leaf_node, value = self._delete_find(node.left, 'max')
-        elif node.right:
-            leaf_node, value = self._delete_find(node.left, 'min')
+        elif node.right is not None:
+            leaf_node, value = self._delete_find(node.right, 'min')
         else:
             leaf_node, value = node, None
 
@@ -96,6 +84,52 @@ class BST:
             return
         else:
             self.delete(leaf_node)
+
+    # 删除
+    def delete_2(self, node):
+        # 找到被删除的叶子结点和值
+        if node.left is not None:
+            leaf_node, value = self._delete_find(node.left, 'max')
+        elif node.right is not None:
+            leaf_node, value = self._delete_find(node.right, 'min')
+        else:
+            leaf_node, value = node, None
+
+        # 偷个懒，找父结点不写了，直接改成属性
+        # 将叶子结点的值赋给被删除的目标结点
+        # 删除的是root
+        if node.father is None:
+            if value is None:
+                self.root = None
+            elif leaf_node.left:
+                self.root.value = leaf_node.value
+                self.root.left = leaf_node.left
+            else:
+                self.root.value = leaf_node.value
+                self.root.left = leaf_node.right
+        # 删除的是父结点的左子结点
+        elif node == node.father.left:
+            if value is None:
+                node.father.left = None
+            elif leaf_node.left:
+                node.father.left = leaf_node.left
+            elif leaf_node.right:
+                node.father.left = leaf_node.right
+            else:
+                node.value = value
+                self.delete_2(leaf_node)
+        # 删除的是父结点的右子结点
+        else:
+            if value is None:
+                node.father.right = None
+            elif leaf_node.left:
+                node.father.right = leaf_node.left
+            elif leaf_node.right:
+                node.father.right = leaf_node.right
+            else:
+                node.value = value
+                self.delete_2(leaf_node)
+
     def level_print(self, node_list):
         next_node_list = list()
         for node in node_list[-1]:
@@ -141,8 +175,9 @@ class BST:
 
 
 if __name__ == '__main__':
-    data = [10, 5, 20, 0, 7, 15, 25, 12 ,17, 22, 30]
+    # data = [10, 5, 20, 0, 7, 15, 25, 12 ,17, 22, 30]
     # data = list(range(5))
+    data = [5, 4, 6, 2, 8, 1, 3, 7, 9]
     tree = BST()
 
     value_node_mapping = dict()
@@ -156,11 +191,6 @@ if __name__ == '__main__':
     # 测试二
     # tree.delete(value_node_mapping[20])
     # 测试三
-    tree.insert(3)
+    tree.delete(value_node_mapping[5])
+    # tree.delete_2(value_node_mapping[5])
     tree.vis_tree()
-    tree.delete(value_node_mapping[7])
-    tree.vis_tree()
-    tree.delete(value_node_mapping[10])
-    tree.vis_tree()
-    # tree.delete(value_node_mapping[10])
-    # tree.vis_tree()
