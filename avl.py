@@ -15,8 +15,7 @@ class AVL:
             self.root = Node(value)
         else:
             self.root = None
-        # 插入
-    # def _indert_change_bf(self, node):
+    # def _insert_change_bf(self, node):
     #     # 修改bf值，只会影响父结点-根结点这一条线上的结点
     #     unbalance_nodes = list()
     #     while node.father:
@@ -42,21 +41,117 @@ class AVL:
         node.bf = left_height - right_height
         if node.bf not in [-1, 0, 1]:
             unbalance_nodes.append(node)
-        print(f'node: {node.value}, bf: {node.bf}')
+        # print(f'node: {node.value}, bf: {node.bf}, left_height: {left_height}, right_height: {right_height}')
         return max(left_height, right_height)
-    def spin_tree(self, node):
-        if node.bf == 2:
-            left_kid = node.left
-            node_father = node.father
-            node.left = left_kid.right
-            left_kid.right = node
-            node.father = left_kid
+    # 删除查找
+    def _delete_find(self, node, type_):
+        if type_ == 'min':
+            if node.left:
+                return self._delete_find(node.left, 'min')
+            else:
+                return node, node.value
+        else:
+            if node.right:
+                return self._delete_find(node.right, 'max')
+            else:
+                return node, node.value
+    # 旋转算法
+    def spin_tree(self, insert_node, unbalance_node):
+        # 判断旋转类型需要三个结点：插入结点，插入结点的父结点，以及不平衡结点
+        # 四种旋转的判定依然有问题
+        if not unbalance_node.father:
+            if insert_node.value < unbalance_node.value:
+                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
+                    type_ = 'll'
+                else:
+                    type_ = 'lr'
+            else:
+                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
+                    type_ = 'rl'
+                else:
+                    type_ = 'rr'
+        else:
+            if unbalance_node.value < unbalance_node.father.value:
+                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
+                    type_ = 'll'
+                else:
+                    type_ = 'lr'
+            else:
+                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
+                    type_ = 'rl'
+                else:
+                    type_ = 'rr'
+        print(insert_node.value, unbalance_node.value, type_)
+        if type_ == 'll':
+            left_kid = unbalance_node.left
+            node_father = unbalance_node.father
+            unbalance_node.left = left_kid.right
+            left_kid.right = unbalance_node
+            unbalance_node.father = left_kid
             if node_father is None:
                 self.root = left_kid
             else:
                 left_kid.father = node_father
                 node_father.left = left_kid
-            self.vis_tree()
+        elif type_ == 'rr':
+            right_kid = unbalance_node.right
+            node_father = unbalance_node.father
+            unbalance_node.right = right_kid.left
+            right_kid.left = unbalance_node
+            unbalance_node.father = right_kid
+            if node_father is None:
+                self.root = right_kid
+            else:
+                right_kid.father = node_father
+                node_father.right = right_kid
+        elif type_ == 'lr':
+            # 被拆分的结点
+            split_node = unbalance_node.left.right
+            left_kid = split_node.left
+            right_kid = split_node.right
+
+            unbalance_node_left = unbalance_node.left
+            unbalance_node_left.right = left_kid
+            if left_kid:
+                left_kid.father = unbalance_node_left
+
+            unbalance_node.left = right_kid
+            if right_kid:
+                right_kid.father = unbalance_node
+
+            split_node.left = unbalance_node_left
+            split_node.right = unbalance_node
+            unbalance_node_left.father = split_node
+            if unbalance_node.father is None:
+                self.root = split_node
+            else:
+                split_node.father = unbalance_node.father
+                unbalance_node.father = split_node
+
+        else:
+            # 被拆分的结点
+            split_node = unbalance_node.right.left
+            left_kid = split_node.left
+            right_kid = split_node.right
+
+            unbalance_node_right = unbalance_node.right
+            unbalance_node_right.left = right_kid
+            if right_kid:
+                left_kid.father = unbalance_node_right
+
+            unbalance_node.right = left_kid
+            if left_kid:
+                left_kid.father = unbalance_node
+
+            split_node.left = unbalance_node
+            split_node.right = unbalance_node_right
+            unbalance_node_right.father = split_node
+            if unbalance_node.father is None:
+                self.root = split_node
+            else:
+                split_node.father = unbalance_node.father
+                unbalance_node.father = split_node
+    # 插入
     def insert(self, value):
         if not self.root:
             self.root = Node(value)
@@ -76,14 +171,58 @@ class AVL:
             node_father.left = node
         
         # 修改bf值，并检查是否导致不平衡
-        # unbalance_nodes = self._indert_change_bf(node)
+        # unbalance_nodes = self._insert_change_bf(node)
         unbalance_nodes = list()
         self._change_all_bf(self.root, unbalance_nodes)
-        print([i.value for i in unbalance_nodes])
         if unbalance_nodes:
-            self.spin_tree(unbalance_nodes[0])
+            print([i.value for i in unbalance_nodes])
+            self.spin_tree(node, unbalance_nodes[0])
         # 为了便于验证删除操作，返回插入的node对象
         return node
+    # 删除
+    def delete(self, node):
+        # 找到被删除的叶子结点和值
+        if node.left is not None:
+            leaf_node, value = self._delete_find(node.left, 'max')
+        elif node.right is not None:
+            leaf_node, value = self._delete_find(node.right, 'min')
+        else:
+            leaf_node, value = node, None
+
+        # 偷个懒，找父结点不写了，直接改成属性
+        # 将叶子结点的值赋给被删除的目标结点
+        # 删除的是root
+        if node.father is None:
+            if value is None:
+                self.root = None
+            elif leaf_node.left:
+                self.root.value = leaf_node.value
+                self.root.left = leaf_node.left
+            else:
+                self.root.value = leaf_node.value
+                self.root.left = leaf_node.right
+        # 删除的是父结点的左子结点
+        elif node == node.father.left:
+            if value is None:
+                node.father.left = None
+            elif leaf_node.left:
+                node.father.left = leaf_node.left
+            elif leaf_node.right:
+                node.father.left = leaf_node.right
+            else:
+                node.value = value
+                self.delete(leaf_node)
+        # 删除的是父结点的右子结点
+        else:
+            if value is None:
+                node.father.right = None
+            elif leaf_node.left:
+                node.father.right = leaf_node.left
+            elif leaf_node.right:
+                node.father.right = leaf_node.right
+            else:
+                node.value = value
+                self.delete(leaf_node)
     def level_print(self, node_list):
         next_node_list = list()
         for node in node_list[-1]:
@@ -116,7 +255,7 @@ class AVL:
             else:
                 level_str = start_part*split_char + none_char
             for i in nodes[1:]:
-                if i :
+                if i:
                     level_str += split_char*(split_part - len(str(i)) + 1) + str(i)
                 else:
                     level_str += split_char*split_part + none_char
@@ -127,15 +266,29 @@ class AVL:
             print(line)
 
 if __name__ == '__main__':
-    data = [5, 4, 8, 3, 4.5, 3.5]
+    data = [5, 4, 8, 3, 4.5]
     tree = AVL()
 
     value_node_mapping = dict()
     for i in data:
         node = tree.insert(i)
         value_node_mapping[node.value] = node
-        # tree.vis_tree()
-        print('insert finished')
+    tree.vis_tree()
 
-    # tree.insert(1)
+    # 测试 ll
+    # tree.insert(3.5)
     # tree.vis_tree()
+    # 测试 rr
+    # tree.insert(9)
+    # tree.vis_tree()
+    # tree.insert(10)
+    # tree.vis_tree()
+    # 测试lr
+    # tree.insert(4.7)
+    # tree.vis_tree()
+    # 测试rl
+    tree.delete(value_node_mapping[3])
+    tree.insert(7.5)
+    tree.vis_tree()
+    tree.insert(7.2)
+    tree.vis_tree()
