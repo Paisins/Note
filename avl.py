@@ -62,7 +62,6 @@ class AVL:
 
     # 旋转算法
     def spin_tree(self, insert_node, unbalance_node):
-        # 判断旋转类型需要三个结点：插入结点，插入结点的父结点，以及不平衡结点
         if insert_node.value < unbalance_node.value:
             if insert_node.value < unbalance_node.left.value:
                 type_ = 'll'
