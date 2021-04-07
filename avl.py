@@ -6,8 +6,10 @@ class Node:
         self.right = None
         self.father = None
         self.bf = 0
+
     def __str__(self):
         return str(self.value)
+
 
 class AVL:
     def __init__(self, value=None):
@@ -28,6 +30,7 @@ class AVL:
     #         node = node.father
     #         print(node.value, node.bf)
     #     return unbalance_nodes
+
     def _change_all_bf(self, node, unbalance_nodes):
         # 修改node结点下面的所有结点的bf值
         if node.left:
@@ -43,6 +46,7 @@ class AVL:
             unbalance_nodes.append(node)
         # print(f'node: {node.value}, bf: {node.bf}, left_height: {left_height}, right_height: {right_height}')
         return max(left_height, right_height)
+
     # 删除查找
     def _delete_find(self, node, type_):
         if type_ == 'min':
@@ -55,33 +59,21 @@ class AVL:
                 return self._delete_find(node.right, 'max')
             else:
                 return node, node.value
+
     # 旋转算法
     def spin_tree(self, insert_node, unbalance_node):
         # 判断旋转类型需要三个结点：插入结点，插入结点的父结点，以及不平衡结点
-        # 四种旋转的判定依然有问题
-        if not unbalance_node.father:
-            if insert_node.value < unbalance_node.value:
-                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
-                    type_ = 'll'
-                else:
-                    type_ = 'lr'
+        if insert_node.value < unbalance_node.value:
+            if insert_node.value < unbalance_node.left.value:
+                type_ = 'll'
             else:
-                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
-                    type_ = 'rl'
-                else:
-                    type_ = 'rr'
+                type_ = 'lr'
         else:
-            if unbalance_node.value < unbalance_node.father.value:
-                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
-                    type_ = 'll'
-                else:
-                    type_ = 'lr'
+            if insert_node.value < unbalance_node.right.value:
+                type_ = 'rl'
             else:
-                if unbalance_node.left and insert_node.value < unbalance_node.left.value:
-                    type_ = 'rl'
-                else:
-                    type_ = 'rr'
-        print(insert_node.value, unbalance_node.value, type_)
+                type_ = 'rr'
+        # print(insert_node.value, unbalance_node.value, type_)
         if type_ == 'll':
             left_kid = unbalance_node.left
             node_father = unbalance_node.father
@@ -90,9 +82,12 @@ class AVL:
             unbalance_node.father = left_kid
             if node_father is None:
                 self.root = left_kid
-            else:
+            elif node_father.left is unbalance_node:
                 left_kid.father = node_father
                 node_father.left = left_kid
+            else:
+                left_kid.father = node_father
+                node_father.right = left_kid
         elif type_ == 'rr':
             right_kid = unbalance_node.right
             node_father = unbalance_node.father
@@ -101,6 +96,9 @@ class AVL:
             unbalance_node.father = right_kid
             if node_father is None:
                 self.root = right_kid
+            elif node_father.left is unbalance_node:
+                right_kid.father = node_father
+                node_father.left = right_kid
             else:
                 right_kid.father = node_father
                 node_father.right = right_kid
@@ -151,6 +149,7 @@ class AVL:
             else:
                 split_node.father = unbalance_node.father
                 unbalance_node.father = split_node
+
     # 插入
     def insert(self, value):
         if not self.root:
@@ -179,6 +178,7 @@ class AVL:
             self.spin_tree(node, unbalance_nodes[0])
         # 为了便于验证删除操作，返回插入的node对象
         return node
+
     # 删除
     def delete(self, node):
         # 找到被删除的叶子结点和值
@@ -223,6 +223,14 @@ class AVL:
             else:
                 node.value = value
                 self.delete(leaf_node)
+
+        # 删除后检查bf值，如果有不平衡结点，待测试
+        unbalance_nodes = list()
+        self._change_all_bf(self.root, unbalance_nodes)
+        if unbalance_nodes:
+            print([i.value for i in unbalance_nodes])
+            self.spin_tree(node, unbalance_nodes[0])
+
     def level_print(self, node_list):
         next_node_list = list()
         for node in node_list[-1]:
@@ -235,6 +243,7 @@ class AVL:
             self.level_print(node_list)
         else:
             return node_list
+
     def vis_tree(self):
         node_list = [[self.root]]
         self.level_print(node_list)
@@ -265,6 +274,7 @@ class AVL:
         for line in tree_str[::-1]:
             print(line)
 
+
 if __name__ == '__main__':
     data = [5, 4, 8, 3, 4.5]
     tree = AVL()
@@ -288,7 +298,12 @@ if __name__ == '__main__':
     # tree.vis_tree()
     # 测试rl
     tree.delete(value_node_mapping[3])
+    tree.delete(value_node_mapping[4.5])
     tree.insert(7.5)
+    tree.vis_tree()
+    tree.insert(9)
     tree.vis_tree()
     tree.insert(7.2)
     tree.vis_tree()
+
+    # 测试删除
