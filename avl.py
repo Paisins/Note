@@ -296,13 +296,15 @@ if __name__ == '__main__':
     # tree.insert(4.7)
     # tree.vis_tree()
     # 测试rl
-    tree.delete(value_node_mapping[3])
-    tree.delete(value_node_mapping[4.5])
-    tree.insert(7.5)
-    tree.vis_tree()
-    tree.insert(9)
-    tree.vis_tree()
-    tree.insert(7.2)
-    tree.vis_tree()
+    # tree.delete(value_node_mapping[3])
+    # tree.delete(value_node_mapping[4.5])
+    # tree.insert(7.5)
+    # tree.vis_tree()
+    # tree.insert(9)
+    # tree.vis_tree()
+    # tree.insert(7.2)
+    # tree.vis_tree()
 
     # 测试删除
+    tree.delete(value_node_mapping[8])
+    tree.vis_tree()
