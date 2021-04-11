@@ -194,6 +194,7 @@ class AVL:
         if node.father is None:
             if value is None:
                 self.root = None
+                return
             elif leaf_node.left:
                 self.root.value = leaf_node.value
                 self.root.left = leaf_node.left
@@ -228,7 +229,132 @@ class AVL:
         self._change_all_bf(self.root, unbalance_nodes)
         if unbalance_nodes:
             print([i.value for i in unbalance_nodes])
-            self.spin_tree(node, unbalance_nodes[0])
+            all_level_nodes = [[self.root]]
+            self.level_print(all_level_nodes)
+            last_level = [i for i in all_level_nodes[-1] if i]
+            first_node = last_level[0]
+            self.spin_tree(first_node, unbalance_nodes[0])
+
+    def pre_order_search_v1(self, node, value):
+        # 默认二叉树中值是唯一的
+        if not node:
+            return None
+        print(node.value)
+        if node.value == value:
+            return node
+        left_result = self.pre_order_search_v1(node.left, value)
+        if left_result:
+            return left_result
+        right_result = self.pre_order_search_v1(node.right, value)
+        if right_result:
+            return right_result
+        return None
+
+    def in_order_search_v1(self, node, value):
+        # 默认二叉树中值是唯一的
+        if not node:
+            return None
+        left_result = self.in_order_search_v1(node.left, value)
+        if left_result:
+            return left_result
+        print(node.value)
+        if node.value == value:
+            return node
+        right_result = self.in_order_search_v1(node.right, value)
+        if right_result:
+            return right_result
+        return None
+
+    def post_order_search_v1(self, node, value):
+        # 默认二叉树中值是唯一的
+        if not node:
+            return None
+        left_result = self.post_order_search_v1(node.left, value)
+        if left_result:
+            return left_result
+        right_result = self.post_order_search_v1(node.right, value)
+        if right_result:
+            return right_result
+        print(node.value)
+        if node.value == value:
+            return node
+        return None
+
+    def level_search_v1(self, node_list, value):
+        # 默认二叉树中值是唯一的
+        new_node_list = list()
+        for node in node_list:
+            print(node.value)
+            if node.value == value:
+                return node
+            if node.left:
+                new_node_list.append(node.left)
+            if node.right:
+                new_node_list.append(node.right)
+        if new_node_list:
+            return self.level_search_v1(new_node_list, value)
+        else:
+            return None
+
+    @staticmethod
+    def pre_order_search_v2(node, value):
+        # 默认二叉树中值是唯一的
+        if not node:
+            return None
+        node_list = [node]
+        while node_list:
+            node = node_list.pop()
+            if node is None:
+                continue
+            print(node.value)
+            if node.value == value:
+                return node
+            node_list.append(node.right)
+            node_list.append(node.left)
+        return None
+
+    @staticmethod
+    def in_order_search_v2(node, value):
+        # 默认二叉树中值是唯一的
+        if not node:
+            return None
+
+        node_list = list()
+        while True:
+            print([i.value for i in node_list], node.value if node else None)
+            if node:
+                node_list.append(node)
+                node = node.left
+            elif node_list:
+                node = node_list.pop()
+                print(node.value)
+                if node.value == value:
+                    return node
+                node = node.right
+            else:
+                break
+        return None
+
+    @staticmethod
+    def post_order_search_v2(node, value):
+        # 默认二叉树中值是唯一的
+        pass
+
+    @staticmethod
+    def level_search_v2(node, value):
+        # 默认二叉树中值是唯一的
+        node_list = [node]
+        while node_list:
+            node = node_list.pop(0)
+            print(node)
+            if node.value == value:
+                return node
+            if node.left:
+                node_list.append(node.left)
+            if node.right:
+                node_list.append(node.right)
+        else:
+            return None
 
     def level_print(self, node_list):
         next_node_list = list()
@@ -274,7 +400,7 @@ class AVL:
             print(line)
 
 
-if __name__ == '__main__':
+def main():
     data = [5, 4, 8, 3, 4.5]
     tree = AVL()
 
@@ -306,5 +432,28 @@ if __name__ == '__main__':
     # tree.vis_tree()
 
     # 测试删除
-    tree.delete(value_node_mapping[8])
-    tree.vis_tree()
+    # tree.delete(value_node_mapping[8])
+    # tree.vis_tree()
+
+    # 测试遍历-递归
+    # tree.pre_order_search_v1(tree.root, 1000)
+    # print('---------------------')
+    # tree.in_order_search_v1(tree.root, 1000)
+    # print('---------------------')
+    # tree.post_order_search_v1(tree.root, 1000)
+    # print('---------------------')
+    # tree.level_search_v1([tree.root], 1000)
+    # print('---------------------')
+    # 测试遍历-迭代
+    # tree.pre_order_search_v2(tree.root, 1000)
+    # print('---------------------')
+    # tree.in_order_search_v2(tree.root, 1000)
+    # print('---------------------')
+    # tree.post_order_search_v2(tree.root, 1000)
+    # print('---------------------')
+    tree.level_search_v2(tree.root, 1000)
+    print('---------------------')
+
+
+if __name__ == '__main__':
+    main()
