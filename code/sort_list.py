@@ -75,6 +75,36 @@ def quick_sort(data: list):
     return part_1 + part_2
 
 
+def shell_sort(data: list):
+    n = len(data)
+    gap = int(n/2)
+
+    while gap > 0:
+        for i in range(gap,n):
+            value = data[i]
+            index = i
+            while index >= gap and data[index-gap] > value:
+                data[index] = data[index-gap]
+                index -= gap
+            data[index] = value
+        gap = int(gap/2)
+        print(data)
+    return data
+
+
+def select_sort(data: list):
+    length = len(data)
+    i = 0
+    while i < length:
+        min_index = i
+        for j in range(i, length):
+            if data[j] < data[min_index]:
+                min_index = j
+        data[i], data[min_index] = data[min_index], data[i]
+        i += 1
+    return data
+
+
 def main():
     example = [1, 3, 2, 0, 9, 5, 4, 7, 8, 6, 4]
     # 冒泡排序
@@ -84,7 +114,11 @@ def main():
     # 归并排序
     # print(merge_sort(example))
     # 快速排序
-    print(quick_sort(example))
+    # print(quick_sort(example))
+    # 希尔排序
+    # print(shell_sort(example))
+    # 选择排序
+    print(select_sort(example))
 
 
 if __name__ == '__main__':
