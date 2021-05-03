@@ -6,8 +6,10 @@ class Node:
         self.left = None
         self.right = None
         self.father = None
+
     def __str__(self):
         return str(self.value)
+
 
 class BST:
     def __init__(self, value=None):
@@ -15,6 +17,7 @@ class BST:
             self.root = Node(value)
         else:
             self.root = None
+
     # 插入
     def insert(self, value):
         if not self.root:
@@ -36,6 +39,7 @@ class BST:
         # print(node_father.value, node.value)
         # 为了便于验证删除操作，返回插入的node对象
         return node
+
     def _delete_find(self, node, type_):
         if type_ == 'min':
             if node.left:
@@ -142,6 +146,7 @@ class BST:
             self.level_print(node_list)
         else:
             return node_list
+
     def vis_tree(self):
         node = self.root
         node_list = [[self.root]]
@@ -174,7 +179,7 @@ class BST:
             print(line)
 
 
-if __name__ == '__main__':
+def main():
     # data = [10, 5, 20, 0, 7, 15, 25, 12 ,17, 22, 30]
     # data = list(range(5))
     data = [5, 4, 6, 2, 8, 1, 3, 7, 9]
@@ -194,3 +199,7 @@ if __name__ == '__main__':
     tree.delete(value_node_mapping[5])
     # tree.delete_2(value_node_mapping[5])
     tree.vis_tree()
+
+
+if __name__ == '__main__':
+    main()
