@@ -682,6 +682,11 @@ RUN pip install -r requirements.txt
 COPY . /code/
 ```
 
+# csrf（待尝试）
+[浅谈django项目中前后端分离csrf传递](https://kommmy.github.io/2018/10/23/separation/)
+
+一般如果使用django自身的模版功能，那么csrf的token也可以由django生成，但是前后端分离的情况下，需要将获取csrf token的接口提供给前端才可以
+
 # 性能测试
 [压测工具如何选择? ab、locust、Jmeter、go压测工具【单台机器100w连接压测实战】](https://segmentfault.com/a/1190000020211494)
 

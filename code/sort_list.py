@@ -80,13 +80,17 @@ def shell_sort(data: list):
     gap = int(n/2)
 
     while gap > 0:
-        for i in range(gap,n):
+        for i in range(gap, n):
             value = data[i]
             index = i
             while index >= gap and data[index-gap] > value:
                 data[index] = data[index-gap]
+                print(f'{index}, {index - gap}, {value}, {data[index-gap]}')
                 index -= gap
+            else:
+                print(f'not: {index}, {index - gap}, {value}, {data[index-gap]}')
             data[index] = value
+
         gap = int(gap/2)
         print(data)
     return data
@@ -116,9 +120,9 @@ def main():
     # 快速排序
     # print(quick_sort(example))
     # 希尔排序
-    # print(shell_sort(example))
+    print(shell_sort(example))
     # 选择排序
-    print(select_sort(example))
+    # print(select_sort(example))
 
 
 if __name__ == '__main__':
