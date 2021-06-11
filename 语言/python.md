@@ -11,6 +11,7 @@
 1、垃圾回收时，Python不能进行其它的任务，频繁的垃圾回收将大大降低Python的工作效率；
 2、Python只会在特定条件下，自动启动垃圾回收（垃圾对象少就没必要回收）
 3、当Python运行时，会记录其中分配对象(object allocation)和取消分配对象(object deallocation)的次数。当两者的差值高于某个阈值时，垃圾回收才会启动。
+
 # 内存池
 > Python使用了内存池机制来管理内存，其内存以金字塔的形式对内存功能进行划分，-1、-2层主要用于对操作系统进行操作， 0层中是C的malloc,、free等等内存分配和释放函数。1、2层是一个内存池， 当对象小于265K时将直接由这片内存池进行分配内存，否则将调用第0层中的C函数来分配内存，当小于265K的对象被销毁时， 其内存也不会被销毁， 只是返回给了内存池以便二次利用。2层是对Python对象进行操作。第3层：最上层，用户对Python对象的直接操作
 
@@ -62,10 +63,13 @@
 多进程的数量跟cpu核有关；而多线程由于逻辑是并发的，所以跟cpu无关，但是跟其他内存等资源有关，因此要考虑其他限制
 
 # 类
-## 单例模式
+## 设计模式
+
+### 单例模式
+单例模式
 单例是一种设计模式，应用该模式的类只会生成一个实例。
 
-### 使用函数装饰器实现
+#### 使用函数装饰器实现
 ```python
 def singleton(cls):
     _instance = {}
@@ -87,7 +91,7 @@ print(id(cls1) == id(cls2))
 
 ```
 
-### 使用类装饰器实现
+#### 使用类装饰器实现
 ```
 class Singleton(object):
     def __init__(self, cls):
@@ -108,7 +112,7 @@ cls2 = Cls2()
 print(id(cls1) == id(cls2))
 ```
 
-### new方法实现
+#### new方法实现
 如果有参数，则不算单例模式，因为执行完new之后还要init方法，不同初始化是不一样的，从这个角度来讲，单例模式本身也不应该传入参数，所以应该还是对的
 ```
 class Single(object):
@@ -125,7 +129,7 @@ single1 = Single()
 single2 = Single()
 print(id(single1) == id(single2))
 ```
-### 文件实现
+#### 文件实现
 ```
 # 创建Singleton.py文件
 class A(object):
@@ -141,7 +145,7 @@ print(a1, id(a1))
 print(a2, id(a2))
 ```
 
-### meta方法
+#### meta方法
 ```
 class Singleton(type):
     _instances = {}
@@ -157,6 +161,9 @@ cls1 = Cls4()
 cls2 = Cls4()
 print(id(cls1) == id(cls2))
 ```
+
+### 工厂模式
+[Python与设计模式--工厂类相关模式](https://developer.aliyun.com/article/70417)
 
 # 装饰器
 四种类型：
