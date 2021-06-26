@@ -2,10 +2,15 @@
 参考：
 [Golang入门教程](http://c.biancheng.net/golang/)
 [Golang开发新手常犯的50个错误](https://blog.csdn.net/gezhonglei2007/article/details/52237582)
+[go-wiki](https://github.com/golang/go/wiki)
 
 ## 环境配置
 [vscode](https://www.liwenzhou.com/posts/Go/00_go_in_vscode/)
 在terminal中使用```go run file.go```运行
+
+## 理解go
+[Go 语言的优点，缺点和令人厌恶的设计](https://studygolang.com/articles/12907)
+### 1、为什么go的协程更加好？
 
 ## 一、数据类型
 ### 1、声明变量
@@ -220,6 +225,14 @@ type newtype int
 # 创建别名
 type typealias = int
 ```
+### 17、省略号
+...是打包和解包操作符
+```
+# 打包
+a := [...]int{1, 2, 3}
+# 解包
+append(a, []int{1, 2, 3}...)
+```
 
 ## 二、容器（数据结构）
 ### 一、数组
@@ -247,16 +260,71 @@ for i, v: range a{
 var a [2]int = [2]int{1, 2}
 var b [2]int = [2]int{1, 2}
 fmt.Println(a == b)
+
+//多维数组
+var a [10][10]int
 ```
 默认情况下，每个元素被设定为对应元素类型的零值
 
 目前看起来数组的使用相当局限，除了初始化、修改特定值就没其他操作了，像是python可修改值的元组
 
 ### 二、切片
+切片（slice）是对数组的一个连续片段的引用，所以切片是一个引用类型，内部结构包含地址、大小和容量；当append超过cap大小时，会重新分配内存， 容量是两倍递增；在函数传参中，是值传递
+```go
+var a = []int{1,2,3}
+a := []int{1,2,3}
+// 后面添加元素
+a = append(a, 123)
+a = append(a, 1, 2, 3)
+a = append(a, []int{1, 2, 3}...)
+// 前面添加元素只能添加切片
+a = append([]int{0}, a)
+// 判断切片是否为空
+a == nil
+// 使用make构建切片，size是预设元素数量，也就是有默认值的数量，cap是预设容量
+make([]Type, size, cap)
+// 看起来插入很麻烦
+a = append(a[:i], append([]int{x}, a[i:]...)...)
 ```
-// 添加元素
-append(a, 123)
+切片在赋值给其他变量的时候，是引用复制，地址不变
+```go
+// 可以用遍历复制，也可以用copy
+copyData := make([]int, elementCount)
+// 将数据复制到新的切片空间中，将srcData复制到copyData，返回复制长度
+value := copy(copyData, srcData)
+// 删除操作也是使用切片的复制，使用append和copy可以保持删除前后地址不变
+a = append(a[:0], a[1:]...)
+a = copy(a, copy(a, a[1:]))
 ```
+append和copy的实现要理解一下；基于这样的拼接式的删除原理，不适合频繁删除
+
+多维切片，概念跟多维数组相近，对它的应用场景比较感兴趣。
+### 三、map
+map的容量，加一增一
+确定类型的话，就不是很灵活，不像python可以直接生成json格式
+```go
+var mapname map[keytype]valuetype
+mapCreated := make(map[string]float)
+// 多个值
+mp1 := make(map[int][]int)
+mp2 := make(map[int]*[]int)
+// 遍历
+for k, v := range map1{
+    fmt.Println(k, v)
+}
+// 删除
+delete(map, key)
+// 并发map
+var scene sync.Map
+scene.Store("greece", 97)
+scene.Delete("london")
+scene.Range(func(k, v interface{}) bool {
+    fmt.Println("iterate:", k, v)
+    return true
+})
+```
+#### 四、列表
+列表可以存储多种数据类型
 
 # 常用包
 ## strings

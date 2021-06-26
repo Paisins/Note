@@ -62,6 +62,7 @@
 
 多进程的数量跟cpu核有关；而多线程由于逻辑是并发的，所以跟cpu无关，但是跟其他内存等资源有关，因此要考虑其他限制
 
+
 # 类
 ## 设计模式
 
@@ -239,3 +240,9 @@ class Cls:
     def func(self, *args, **kwargs):
         print(*args, **kwargs)
 ```
+
+# 小技巧
+
+1、快捷条件操作：a is not None and b.append(a)
+2、集合操作：交集：a & b 并集：a | b 差集：a -b 
+3、functools.partial

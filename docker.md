@@ -70,8 +70,10 @@ $ sudo usermod -aG docker $USER
 ### 2、镜像
 > 镜像的唯一标识是其 ID 和摘要，ls展示的是一部分id
 
-#### 2.1 拉取镜像
+#### 2.1 获取镜像
 ```
+# 搜索镜像
+docker search name
 # 将仓库名称和标签改成个人账号的仓库和标签，应该也可以？待测试
 docker pull [选项] [Docker Registry 地址[:端口号]/]仓库名[:标签]
 ```
@@ -520,7 +522,6 @@ HEALTHCHECK --interval=5s --timeout=3s \
 ## TODO 待做实验
 ### 1、构建docker file，在新的环境快速部署服务
 ### 2、使用自动构建功能，尝试自动构建
-
 
 
 
