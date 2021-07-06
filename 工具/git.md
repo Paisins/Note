@@ -20,11 +20,20 @@ git config --global user.name "John Doe"
 git config --global user.email johndoe@example.com
 
 ### 在mac上使用多个git账号
-参考[Mac 上配置多个git账号](https://www.jianshu.com/p/698f82e72415)
+参考
+- [Mac 上配置多个git账号](https://www.jianshu.com/p/698f82e72415)
+- [git config的全局和本地配置](https://www.jianshu.com/p/fa1c798a81e9)
+当有多个账号的时候每个项目可能需要配置对应的账号
+```
+git config --local user.name "name"
+git config --local user.email "email"
+```
+思考如何直接省略这一步
 
 ## 2.0 删除分支
 git checkout branch_name 切换分支
 git branch -d branch_name 删除分支
+
 ## 2.1 修改分支名称
 git checkout old_name
 git pull

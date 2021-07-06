@@ -8,3 +8,13 @@
 - zookeeper
 - rancher
 - k8s
+
+### 压测
+ab：https://segmentfault.com/a/1190000020211494
+```
+ab -c 10 -n 50 -k http://45.77.104.12:5057/
+-c: 并发数
+-n: 请求总数
+-k: keep-alive
+```
+
