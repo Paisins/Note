@@ -2,6 +2,8 @@
 
 import time
 import select
+import uvloop
+import asyncio
 import functools
 import multiprocessing
 from queue import Queue
@@ -15,8 +17,21 @@ class ServerSocket(ServerSocketBase):
     def deal_msg(msg):
         """处理信息，生成返回结果"""
         for i in range(1, 4):
-            time.sleep(1)
+            asyncio.sleep(1)  # time.sleep(1)
+            # 如果是其他耗时操作，也需要手动写call_soon吗？
             print(f'sleep: {i}, {msg}, {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+        return bytes('[%s]收到 %s' % (time.ctime(), msg.decode('utf-8')), encoding='utf-8')
+
+    @staticmethod
+    async def async_sleep(num, print_str):
+        time.sleep(num)
+        print(print_str % num)
+
+    async def async_deal_msg(self, msg):
+        """处理信息，生成返回结果"""
+        print_str = f'sleep: %d, {msg}, {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}'
+        # for i in range(1, 4):
+        await self.async_sleep(4, print_str)
         return bytes('[%s]收到 %s' % (time.ctime(), msg.decode('utf-8')), encoding='utf-8')
 
     def single_work(self, client_tcp_socket):
@@ -102,6 +117,96 @@ class ServerSocket(ServerSocketBase):
 
             res_msg = self.deal_msg(data)
             client_tcp_socket.send(res_msg)
+
+    async def async_select_epoll_work(self, timeout):
+        tcp_server_socket = self.create_server_socket()
+
+        message_queues = {}
+        epoll = select.epoll()
+        epoll.register(tcp_server_socket.fileno(), select.EPOLLIN)
+        fd_to_socket = {tcp_server_socket.fileno(): tcp_server_socket}
+
+        print("等待客户端的链接")
+        while True:
+            # 轮询注册的事件集合，返回值为[(文件句柄，对应的事件)，(...),....]
+            try:
+                # 这里对于并发难道不是限制吗？
+                events = epoll.poll(timeout)
+            except Exception as e:
+                print(e)
+                continue
+            print('events: ', events)
+            if not events:
+                print("epoll超时无活动连接，重新轮询......")
+                continue
+            print(f"有{len(events)}个新事件，开始处理......")
+
+            for fd, event in events:
+                socket = fd_to_socket[fd]
+                # 如果活动socket为当前服务器socket，表示有新连接
+                if socket == tcp_server_socket:
+                    connection, address = tcp_server_socket.accept()
+                    print("新连接：", address)
+                    # 新连接socket设置为非阻塞
+                    connection.setblocking(False)
+                    # 注册新连接fd到待读事件集合
+                    epoll.register(connection.fileno(), select.EPOLLIN)
+                    # 把新连接的文件句柄以及对象保存到字典
+                    fd_to_socket[connection.fileno()] = connection
+                    # 以新连接的对象为键值，值存储在队列中，保存每个连接的信息
+                    message_queues[connection] = Queue()
+                    print('step 1 finished: ', epoll.closed)
+                # 关闭事件
+                elif event & (select.EPOLLHUP | select.EPOLLERR):
+                    print('client close')
+                    # 在epoll中注销客户端的文件句柄
+                    epoll.unregister(fd)
+                    # 关闭客户端的文件句柄
+                    fd_to_socket[fd].close()
+                    # 在字典中删除与已关闭客户端相关的信息
+                    del fd_to_socket[fd]
+                # 可读事件
+                elif event & select.EPOLLIN:
+                    # 接收数据
+                    data = socket.recv(1024)
+                    if data and data != b'client close':
+                        print(f"收到数据：{data}客户端：", socket.getpeername())
+                        # 将数据放入对应客户端的字典
+                        message_queues[socket].put(data)
+                        # 修改读取到消息的连接到等待写事件集合(即对应客户端收到消息后，再将其fd修改并加入写事件集合)
+                        epoll.modify(fd, select.EPOLLOUT)
+                    else:
+                        # 备选连接在处理前中断
+                        print(f'server no data: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}')
+                        # 在epoll中注销客户端的文件句柄
+                        epoll.unregister(fd)
+                        # 关闭客户端的文件句柄
+                        fd_to_socket[fd].close()
+                        # 在字典中删除与已关闭客户端相关的信息
+                        del fd_to_socket[fd]
+                # 可写事件
+                elif event & select.EPOLLOUT:
+                    try:
+                        # 从字典中获取对应客户端的信息
+                        msg = message_queues[socket].get_nowait()
+                    except Exception:  # Queue.Empty
+                        print(socket.getpeername(), " queue empty")
+                        # 修改文件句柄为读事件
+                        epoll.modify(fd, select.EPOLLIN)
+                    else:
+                        print(f"收到数据：{msg}客户端：", socket.getpeername())
+                        # 发送数据
+                        # res_msg = self.deal_msg(msg)
+                        res_msg = await self.async_deal_msg(msg)
+                        socket.send(res_msg)
+                        # 将fd放到可读
+                        epoll.modify(fd, select.EPOLLIN)
+            # 在epoll中注销服务端文件句柄
+        epoll.unregister(tcp_server_socket.fileno())
+        # 关闭epoll
+        epoll.close()
+        # 关闭服务器socket
+        tcp_server_socket.close()
 
     def single_run(self):
         """ 同步阻塞io：运行"""
@@ -218,17 +323,10 @@ class ServerSocket(ServerSocketBase):
                 elif event & select.EPOLLIN:
                     # 接收数据
                     data = socket.recv(1024)
-                    if data:
-                        print(f"收到数据：{data}客户端：" , socket.getpeername())
+                    if data and data != b'client close':
+                        print(f"收到数据：{data}客户端：", socket.getpeername())
                         # 将数据放入对应客户端的字典
                         message_queues[socket].put(data)
-                        if data == 'client close':
-                            # 在epoll中注销客户端的文件句柄
-                            epoll.unregister(fd)
-                            # 关闭客户端的文件句柄
-                            fd_to_socket[fd].close()
-                            # 在字典中删除与已关闭客户端相关的信息
-                            del fd_to_socket[fd]
                         # 修改读取到消息的连接到等待写事件集合(即对应客户端收到消息后，再将其fd修改并加入写事件集合)
                         epoll.modify(fd, select.EPOLLOUT)
                     else:
@@ -263,13 +361,27 @@ class ServerSocket(ServerSocketBase):
         # 关闭服务器socket
         tcp_server_socket.close()
 
-    @staticmethod
-    def handle_client(cli_addr, fd, event, fd_map, ioloop, message_queue_map):
-        print(event, IOLoop.WRITE)
+    def async_select_epoll_run(self, timeout=10):
+        """epoll 异步"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        tasks = [self.async_select_epoll_work(timeout)]
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+    def uvloop_select_epoll_run(self, timeout=10):
+        """epoll 异步"""
+        loop = uvloop.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        tasks = [self.async_select_epoll_work(timeout)]
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+    def handle_client(self, cli_addr, fd_map, ioloop, message_queue_map, fd, event):
         s = fd_map[fd]
         if event & IOLoop.READ:  # receive the data
             data = s.recv(1024)
-            if data:
+            if data and data != b'client close':
                 print("receive %s from %s" % (data, cli_addr))
                 ioloop.update_handler(fd, IOLoop.WRITE)
                 message_queue_map[s].put(data)
@@ -282,19 +394,21 @@ class ServerSocket(ServerSocketBase):
             try:
                 next_msg = message_queue_map[s].get_nowait()
             except Exception:  # Queue.Empty
-                print("%s Queue Empty"% cli_addr)
-                ioloop.update_handler(fd,IOLoop.READ)   # CHANGE THE SITUATION
+                print("%s Queue Empty" % cli_addr)
+                ioloop.update_handler(fd, IOLoop.READ)   # CHANGE THE SITUATION
             else:
                 print("sending %s to %s " % (next_msg, cli_addr))
-                s.send(next_msg)
+                # res_msg = self.deal_msg(next_msg)
+                res_msg = self.async_deal_msg(next_msg)
+                s.send(res_msg)
                 ioloop.update_handler(fd, IOLoop.READ)
         if event & IOLoop.ERROR:
-            print("%s EXCEPTION ON"%cli_addr)
+            print("%s EXCEPTION ON" % cli_addr)
             ioloop.remove_handler(fd)
             s.close()
             del message_queue_map[s]
 
-    def handle_server(self, fd_map, ioloop, message_queue_map, fd, event):
+    def handle_server(self, fd_map, message_queue_map, fd, event):
         s = fd_map[fd]
         if event & IOLoop.READ:
             get_connection, cli_addr = s.accept()
@@ -302,8 +416,11 @@ class ServerSocket(ServerSocketBase):
             get_connection.setblocking(0)
             get_connection_fd = get_connection.fileno()
             fd_map[get_connection_fd] = get_connection
-            handle = functools.partial(self.handle_client, cli_addr[0])
-            ioloop.add_handler(get_connection_fd, handle, IOLoop.READ)
+
+            io_loop = IOLoop.current()
+            handle = functools.partial(self.handle_client, cli_addr[0], fd_map, io_loop, message_queue_map)
+            io_loop.add_handler(get_connection_fd, handle, IOLoop.READ)
+            # io_loop.spawn_callback(handle, get_connection_fd, IOLoop.READ)
             message_queue_map[get_connection] = Queue()
 
     def tornado_ioloop_run(self):
@@ -316,12 +433,15 @@ class ServerSocket(ServerSocketBase):
         message_queue_map = {}
 
         io_loop = IOLoop.instance()
-        handle_server_partial = functools.partial(self.handle_server, fd_map, io_loop, message_queue_map)
+        handle_server_partial = functools.partial(self.handle_server, fd_map, message_queue_map)
         io_loop.add_handler(fd, handle_server_partial, io_loop.READ)
         try:
             io_loop.start()
+        except Exception as e:
+            print(e)
         except KeyboardInterrupt:
             print("exit")
+        finally:
             io_loop.stop()
 
 
@@ -339,18 +459,26 @@ def main():
     # socket_server = ServerSocket()
     # socket_server.multi_run(2)
 
+    # io多路复用
+
     # 服务端：select.select，单进程处理多连接，此时进程堵塞在调用select时
 
     # 服务端：select.poll，单进程处理多连接
 
     # 服务端：select.epoll，单进程处理多连接
     # linux下才能调用select.epoll，使用云服务器测试
-    # socket_server = ServerSocket(host='45.77.104.12', block_stats=False)
+    # socket_server = ServerSocket(block_stats=False, max_conn=100)
     # socket_server.select_epoll_run(timeout=50)
 
-    # 服务端：tornado，异步
-    # 未测试，可以看到跟上面的select.epoll基本是一样的
-    socket_server = ServerSocket(host='45.77.104.12', block_stats=False)
+    # 服务端: select.epoll + 协程asyncio 处理多连接
+    socket_server = ServerSocket(block_stats=False, max_conn=100)
+    socket_server.async_select_epoll_run(timeout=50)
+    # socket_server.uvloop_select_epoll_run(timeout=50)
+
+    # 服务端：tornado ioloop
+    # 可以看到跟上面的select.epoll的逻辑基本是一样的，同时IOLoop是基于asyncio
+    # socket_server = ServerSocket(block_stats=False, max_conn=100)
+    # socket_server.tornado_ioloop_run()
 
 
 if __name__ == '__main__':
